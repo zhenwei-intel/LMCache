@@ -94,7 +94,8 @@ class StorageManager:
         self.instance_id = config.lmcache_instance_id
         self.worker_id = metadata.worker_id
 
-        self.nixl_offload_stream = torch.cuda.Stream()
+        if self.enable_nixl:
+            self.nixl_offload_stream = torch.xpu.Stream()
 
     @_lmcache_nvtx_annotate
     def allocate(
