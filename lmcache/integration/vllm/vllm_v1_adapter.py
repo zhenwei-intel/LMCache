@@ -435,10 +435,10 @@ def _init_lmcache_engine(
     )
 
     # Change current device.
-    num_gpus = torch.cuda.device_count()
+    num_gpus = 1 # torch.xpu.device_count()
     local_rank = parallel_config.rank % num_gpus
-    torch.cuda.set_device(local_rank)
-    device = torch.device(f"cuda:{local_rank}")
+    torch.xpu.set_device(local_rank)
+    device = torch.device(f"xpu:{local_rank}")
     metadata = LMCacheEngineMetadata(
         model_config.model,
         parallel_config.world_size,
@@ -670,7 +670,7 @@ class LMCacheConnectorV1Impl:
 
             tokens = request.token_ids
             # TODO: have a pre-allocated buffer to hold the slot_mappings
-            slot_mapping = request.slot_mapping.cuda()
+            slot_mapping = request.slot_mapping.xpu()
             assert len(tokens) == len(slot_mapping)
 
             token_mask = torch.ones_like(tokens, dtype=torch.bool)
@@ -808,7 +808,7 @@ class LMCacheConnectorV1Impl:
                 assert len(slot_mapping) == len(token_ids)
 
                 # TODO: have a pre-allocated buffer to hold the slot_mappings
-                slot_mapping = slot_mapping.cuda()
+                slot_mapping = slot_mapping.xpu()
 
                 if self.kv_role == "kv_producer":
                     skip_leading_tokens = 0
