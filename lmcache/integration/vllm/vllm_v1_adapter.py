@@ -493,14 +493,14 @@ def _init_lmcache_engine(
             device=device,
             use_mla=use_mla,
         )
-    tpg = get_tp_group()
+    # tpg = get_tp_group()
     engine = LMCacheEngineBuilder.get_or_create(
         ENGINE_NAME,
         lmcache_config,
         metadata,
         vllm_gpu_connector,
-        tpg.broadcast,
-        tpg.broadcast_object,
+        # tpg.broadcast,
+        # tpg.broadcast_object,
     )
 
     return engine
@@ -896,7 +896,7 @@ class LMCacheConnectorV1Impl:
             assert len(slot_mapping) == len(token_ids)
 
             # TODO: have a pre-allocated buffer to hold the slot_mappings
-            slot_mapping = slot_mapping.cuda()
+            slot_mapping = slot_mapping.xpu()
 
             skip_leading_tokens = save_spec.skip_leading_tokens
             if self.kv_role == "kv_producer":
