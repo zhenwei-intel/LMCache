@@ -41,6 +41,7 @@ from lmcache.v1.gpu_connector import (
     VLLMPagedMemGPUConnectorV2,
     VLLMPagedMemLayerwiseGPUConnector,
 )
+from lmcache.v1.xpu_connector import VLLMPagedMemXPUConnectorV2
 from lmcache.v1.internal_api_server.api_server import InternalAPIServer
 from lmcache.v1.lookup_client import LookupClientFactory
 from lmcache.v1.offload_server.zmq_server import ZMQOffloadServer
@@ -454,6 +455,7 @@ def _init_lmcache_engine(
         VLLMBufferLayerwiseGPUConnector,
         VLLMPagedMemGPUConnectorV2,
         VLLMPagedMemLayerwiseGPUConnector,
+        VLLMPagedMemXPUConnectorV2
     ]
 
     if use_mla and lmcache_config.use_layerwise:
@@ -482,7 +484,7 @@ def _init_lmcache_engine(
                 device=device,
             )
     else:
-        vllm_gpu_connector = VLLMPagedMemGPUConnectorV2(
+        vllm_gpu_connector = VLLMPagedMemXPUConnectorV2(
             hidden_dim_size,
             num_layer,
             use_gpu=use_gpu,
