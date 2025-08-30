@@ -18,7 +18,11 @@ import torch
 from lmcache.logging import init_logger
 from lmcache.observability import LMCStatsMonitor
 from lmcache.utils import _lmcache_nvtx_annotate
-import lmcache.c_ops as lmc_ops
+try:
+    # First Party
+    import lmcache.c_ops as lmc_ops
+except (ModuleNotFoundError, ImportError):
+    lmc_ops = None
 
 logger = init_logger(__name__)
 
@@ -1343,10 +1347,13 @@ class PinMemoryAllocator(MemoryAllocatorInterface):
         :param int size: The size of the pinned memory in bytes.
         """
 
-        ptr = lmc_ops.alloc_pinned_ptr(size, 0)
-        array_type = ctypes.c_uint8 * size
-        buf = array_type.from_address(ptr)
-        self.buffer = torch.frombuffer(buf, dtype=torch.uint8)
+        if lmc_ops:
+            ptr = lmc_ops.alloc_pinned_ptr(size, 0)
+            array_type = ctypes.c_uint8 * size
+            buf = array_type.from_address(ptr)
+            self.buffer = torch.frombuffer(buf, dtype=torch.uint8)
+        else:
+            self.buffer = torch.empty(size, dtype=torch.uint8, pin_memory=True)
 
         self._unregistered = False
 
@@ -1412,10 +1419,10 @@ class PinMemoryAllocator(MemoryAllocatorInterface):
             return self.allocator.memcheck()
 
     def close(self):
-        if not self._unregistered:
+        if lmc_ops and not self._unregistered:
             torch.cuda.synchronize()
             lmc_ops.free_pinned_ptr(self.buffer.data_ptr())
-            self._unregistered = True
+        self._unregistered = True
 
 
 class MixedMemoryAllocator(MemoryAllocatorInterface):
@@ -1429,10 +1436,13 @@ class MixedMemoryAllocator(MemoryAllocatorInterface):
         :param int size: The size of the pinned memory in bytes.
         """
 
-        ptr = lmc_ops.alloc_pinned_ptr(size, 0)
-        array_type = ctypes.c_uint8 * size
-        buf = array_type.from_address(ptr)
-        self.buffer = torch.frombuffer(buf, dtype=torch.uint8)
+        if lmc_ops:
+            ptr = lmc_ops.alloc_pinned_ptr(size, 0)
+            array_type = ctypes.c_uint8 * size
+            buf = array_type.from_address(ptr)
+            self.buffer = torch.frombuffer(buf, dtype=torch.uint8)
+        else:
+            self.buffer = torch.empty(size, dtype=torch.uint8, pin_memory=True)
         self._unregistered = False
 
         if use_paging:
@@ -1544,10 +1554,10 @@ class MixedMemoryAllocator(MemoryAllocatorInterface):
             return self.pin_allocator.memcheck()
 
     def close(self):
-        if not self._unregistered:
+        if lmc_ops and not self._unregistered:
             torch.cuda.synchronize()
             lmc_ops.free_pinned_ptr(self.buffer.data_ptr())
-            self._unregistered = True
+        self._unregistered = True
 
 
 class GPUMemoryAllocator(MemoryAllocatorInterface):
