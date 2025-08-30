@@ -219,11 +219,12 @@ class UsageContext:
         return num_cpu, cpu_type, cpu_family_model_stepping
 
     def _get_gpu_info(self):
-        device_property = torch.cuda.get_device_properties(0)
-        gpu_count = torch.cuda.device_count()
-        gpu_type = device_property.name
-        gpu_memory_per_device = device_property.total_memory
-        return gpu_count, gpu_type, gpu_memory_per_device
+        return 1, "N/A", 0
+        # device_property = torch.cuda.get_device_properties(0)
+        # gpu_count = torch.cuda.device_count()
+        # gpu_type = device_property.name
+        # gpu_memory_per_device = device_property.total_memory
+        # return gpu_count, gpu_type, gpu_memory_per_device
 
     def _get_source(self):
         path = "/proc/1/cgroup"
