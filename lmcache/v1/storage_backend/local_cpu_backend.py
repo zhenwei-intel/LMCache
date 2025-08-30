@@ -55,7 +55,7 @@ class LocalCPUBackend(StorageBackendInterface):
         self.instance_id = config.lmcache_instance_id
         self.cpu_lock = threading.Lock()
 
-        self.stream = torch.cuda.Stream()
+        # self.stream = torch.cuda.Stream()
 
         self.stats_monitor = LMCStatsMonitor.GetOrCreate()
 
