@@ -193,6 +193,12 @@ class VLLMPagedMemXPUConnectorV2(GPUConnectorInterface):
 
         kv_cache_pointers = self._initialize_pointers(kvcaches)
 
+        tmp_gpu_buffer = self.gpu_buffer[:, :, : end - start, :]
+        tmp_gpu_buffer[0] = torch.stack(tuple(
+            kvcaches[i][0].view(-1) for i in range(len(kvcaches))
+        ))
+        memory_obj.tensor.copy_(tmp_gpu_buffer, non_blocking=True)
+
         if self.gpu_buffer is None or end - start != self.gpu_buffer.shape[2]:
             lmc_ops.multi_layer_kv_transfer(
                 memory_obj.tensor,
