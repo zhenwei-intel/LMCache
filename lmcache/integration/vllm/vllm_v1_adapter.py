@@ -52,6 +52,7 @@ from lmcache.v1.lookup_client.lmcache_async_lookup_client import (
 )
 from lmcache.v1.offload_server.zmq_server import ZMQOffloadServer
 from lmcache.v1.plugin.plugin_launcher import PluginLauncher
+from lmcache.v1.xpu_connector import VLLMPagedMemXPUConnectorV2
 
 if TYPE_CHECKING:
     # Third Party
@@ -475,10 +476,19 @@ def _init_lmcache_engine(
     )
 
     # Change current device.
-    num_gpus = torch.cuda.device_count()
+    if torch.cuda.is_available():
+        torch_dev = torch.cuda
+        dev_name = "cuda"
+    elif torch.xpu.is_available():
+        torch_dev = torch.xpu
+        dev_name = "xpu"
+    else:
+        raise RuntimeError("Unsupported device platform for LMCache engine.")
+
+    num_gpus = torch_dev.device_count()
     local_rank = parallel_config.rank % num_gpus
-    torch.cuda.set_device(local_rank)
-    device = torch.device(f"cuda:{local_rank}")
+    torch_dev.set_device(local_rank)
+    device = torch.device(f"{dev_name}:{local_rank}")
     metadata = LMCacheEngineMetadata(
         model_config.model,
         parallel_config.world_size,
@@ -494,6 +504,7 @@ def _init_lmcache_engine(
         VLLMBufferLayerwiseGPUConnector,
         VLLMPagedMemGPUConnectorV2,
         VLLMPagedMemLayerwiseGPUConnector,
+        VLLMPagedMemXPUConnectorV2,
     ]
 
     if use_mla and lmcache_config.use_layerwise:
@@ -522,7 +533,14 @@ def _init_lmcache_engine(
                 device=device,
             )
     else:
-        vllm_gpu_connector = VLLMPagedMemGPUConnectorV2(
+        if torch.cuda.is_available():
+            connector_cls = VLLMPagedMemGPUConnectorV2
+        elif torch.xpu.is_available():
+            connector_cls = VLLMPagedMemXPUConnectorV2
+        else:
+            raise RuntimeError("No supported connector found for the current platform.")
+
+        vllm_gpu_connector = connector_cls(
             hidden_dim_size,
             num_layer,
             use_gpu=use_gpu,
@@ -822,7 +840,7 @@ class LMCacheConnectorV1Impl:
 
             tokens = request.token_ids
             # TODO: have a pre-allocated buffer to hold the slot_mappings
-            slot_mapping = request.slot_mapping.cuda()
+            slot_mapping = request.slot_mapping.to(kvcaches[0][0].device)
             assert len(tokens) == len(slot_mapping)
 
             self._stats_monitor.update_interval_vllm_hit_tokens(
@@ -968,7 +986,7 @@ class LMCacheConnectorV1Impl:
                 assert len(slot_mapping) == len(token_ids)
 
                 # TODO: have a pre-allocated buffer to hold the slot_mappings
-                slot_mapping = slot_mapping.cuda()
+                slot_mapping = slot_mapping.to(kvcaches[0][0].device)
 
                 if self.kv_role == "kv_producer":
                     skip_leading_tokens = 0
@@ -1052,7 +1070,7 @@ class LMCacheConnectorV1Impl:
             assert len(slot_mapping) == len(token_ids)
 
             # TODO: have a pre-allocated buffer to hold the slot_mappings
-            slot_mapping = slot_mapping.cuda()
+            slot_mapping = slot_mapping.to(kvcaches[0][0].device)
 
             skip_leading_tokens = save_spec.skip_leading_tokens
             if self.kv_role == "kv_producer":

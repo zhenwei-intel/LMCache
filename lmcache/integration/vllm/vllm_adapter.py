@@ -49,7 +49,8 @@ from lmcache.v1.cache_engine import LMCacheEngineBuilder
 
 logger = init_logger(__name__)
 
-LMCACHE_CUDA_STREAM = torch.cuda.Stream()
+if torch.cuda.is_available():
+    LMCACHE_CUDA_STREAM = torch.cuda.Stream()
 
 SUPPORTED_BACKEND_METADATA = (
     FlashAttentionMetadata,
