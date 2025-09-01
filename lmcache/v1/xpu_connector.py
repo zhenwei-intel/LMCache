@@ -121,7 +121,7 @@ class VLLMPagedMemXPUConnectorV2(GPUConnectorInterface):
         :raises ValueError: If 'slot_mapping' is not provided in kwargs.
         """
         assert memory_obj.tensor is not None
-        self.initialize_kvcaches_ptr(**kwargs)
+        # self.initialize_kvcaches_ptr(**kwargs)
         assert self.kvcaches is not None, (
             "kvcaches should be provided in kwargs or initialized beforehand."
         )
@@ -186,7 +186,7 @@ class VLLMPagedMemXPUConnectorV2(GPUConnectorInterface):
         :raises ValueError: If 'slot_mapping' is not provided in kwargs.
         """
         assert memory_obj.tensor is not None
-        self.initialize_kvcaches_ptr(**kwargs)
+        # self.initialize_kvcaches_ptr(**kwargs)
         assert self.kvcaches is not None, (
             "kvcaches should be provided in kwargs or initialized beforehand."
         )
