@@ -27,7 +27,7 @@ from lmcache.v1.compute.blend.utils import LMCBlenderBuilder
 from lmcache.v1.memory_management import GPUMemoryAllocator  # noqa: E501
 from lmcache.v1.memory_management import MemoryFormat, MemoryObj
 from lmcache.v1.gpu_connector import GPUConnectorInterface
-
+import numpy as np
 try:
     # First Party
     import lmcache.c_ops as lmc_ops
@@ -37,7 +37,7 @@ except (ModuleNotFoundError, ImportError):
 
 logger = init_logger(__name__)
 
-class VLLMPagedMemGPUConnectorV2(GPUConnectorInterface):
+class VLLMPagedMemXPUConnectorV2(GPUConnectorInterface):
     """
     The GPU KV cache should be a nested tuple of K and V tensors.
     More specifically, we have:
@@ -87,7 +87,7 @@ class VLLMPagedMemGPUConnectorV2(GPUConnectorInterface):
             )
 
     def _initialize_pointers(self, kv_caches: List[torch.Tensor]) -> torch.Tensor:
-        self.kv_cache_pointers.numpy()[:] = [t.data_ptr() for t in kv_caches]
+        self.kv_cache_pointers.numpy()[:] = np.array([t.data_ptr() for t in kv_caches], dtype=np.uint64)
         device = kv_caches[0].device
         assert device.type == "xpu", "The device should be XPU."
         idx = device.index
