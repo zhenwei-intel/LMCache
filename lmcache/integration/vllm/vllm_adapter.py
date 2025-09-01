@@ -63,6 +63,7 @@ from lmcache.v1.gpu_connector import (
     VLLMPagedMemGPUConnectorV2,
     VLLMPagedMemLayerwiseGPUConnector,
 )
+from lmcache.v1.xpu_connector import VLLMPagedMemXPUConnectorV2
 
 # FIXME(Jiayi): temporarily comment this out
 # from lmcache_vllm.blend_adapter import remove_request_id_indices
@@ -186,6 +187,7 @@ def init_lmcache_engine(
         VLLMBufferLayerwiseGPUConnector,
         VLLMPagedMemGPUConnectorV2,
         VLLMPagedMemLayerwiseGPUConnector,
+        VLLMPagedMemXPUConnectorV2
     ]
 
     if use_mla and config.use_layerwise:
@@ -214,7 +216,7 @@ def init_lmcache_engine(
                 device=device,
             )
     else:
-        vllm_gpu_connector = VLLMPagedMemGPUConnectorV2(
+        vllm_gpu_connector = VLLMPagedMemXPUConnectorV2(
             hidden_dim_size,
             num_layer,
             use_gpu=use_gpu,
