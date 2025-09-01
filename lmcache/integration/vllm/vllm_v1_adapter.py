@@ -424,7 +424,7 @@ class LMCacheConnectorV1Impl:
 
             tokens = request.token_ids
             # TODO: have a pre-allocated buffer to hold the slot_mappings
-            slot_mapping = request.slot_mapping.cuda()
+            slot_mapping = request.slot_mapping.xpu()
             assert len(tokens) == len(slot_mapping)
 
             token_mask = torch.ones_like(tokens, dtype=torch.bool)
@@ -556,7 +556,7 @@ class LMCacheConnectorV1Impl:
                 assert len(slot_mapping) == len(token_ids)
 
                 # TODO: have a pre-allocated buffer to hold the slot_mappings
-                slot_mapping = slot_mapping.cuda()
+                slot_mapping = slot_mapping.xpu()
                 # NOTE: In PD setting, lmcache_engine.lookup() will always
                 # return 0 if there is no local storage configured.
                 # In this case, we should rely on the slip_leading_tokens in
@@ -637,7 +637,7 @@ class LMCacheConnectorV1Impl:
             assert len(slot_mapping) == len(token_ids)
 
             # TODO: have a pre-allocated buffer to hold the slot_mappings
-            slot_mapping = slot_mapping.cuda()
+            slot_mapping = slot_mapping.xpu()
             # NOTE: In PD setting, lmcache_engine.lookup() will always return
             # 0 if there is no local storage configured. In this case, we
             # should rely on the slip_leading_tokens in save_spec to avoid
