@@ -69,7 +69,7 @@ from lmcache.v1.gpu_connector import (
 
 logger = init_logger(__name__)
 
-LMCACHE_CUDA_STREAM = torch.cuda.Stream()
+# LMCACHE_CUDA_STREAM = torch.cuda.Stream()
 
 SUPPORTED_BACKEND_METADATA = (
     FlashAttentionMetadata,

@@ -99,7 +99,7 @@ class StorageManager:
         self.instance_id = config.lmcache_instance_id
         self.worker_id = metadata.worker_id
 
-        self.stream = torch.cuda.Stream()
+        # self.stream = torch.cuda.Stream()
 
     @_lmcache_nvtx_annotate
     def allocate(
