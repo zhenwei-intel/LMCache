@@ -45,13 +45,13 @@ def CreateStorageBackends(
     metadata: LMCacheEngineMetadata,
     loop: asyncio.AbstractEventLoop,
     memory_allocator: MemoryAllocatorInterface,
-    dst_device: str = "cuda",
+    dst_device: str = "xpu",
     lmcache_worker: Optional["LMCacheWorker"] = None,
     lookup_server: Optional[LookupServerInterface] = None,
 ) -> OrderedDict[str, StorageBackendInterface]:
-    # Replace 'cuda' with 'cuda:<device id>'
-    if dst_device == "cuda":
-        dst_device = f"cuda:{torch.cuda.current_device()}"
+    # Replace 'xpu' with 'xpu:<device id>'
+    if dst_device == "xpu":
+        dst_device = f"xpu:{torch.xpu.current_device()}"
 
     storage_backends: OrderedDict[str, StorageBackendInterface] = OrderedDict()
 
