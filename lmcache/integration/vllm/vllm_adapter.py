@@ -170,8 +170,8 @@ def init_lmcache_engine(
     logger.info(f"use mla: {use_mla}, kv shape: {kv_shape}")
 
     # Change current device.
-    torch.cuda.device(parallel_config.rank)
-    device = torch.device(f"cuda:{parallel_config.rank}")
+    torch.xpu.device(parallel_config.rank)
+    device = torch.device(f"xpu:{parallel_config.rank}")
     metadata = LMCacheEngineMetadata(
         model_config.model,
         parallel_config.world_size,
