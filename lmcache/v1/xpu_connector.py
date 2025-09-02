@@ -193,36 +193,18 @@ class VLLMPagedMemXPUConnectorV2(GPUConnectorInterface):
 
         kv_cache_pointers = self._initialize_pointers(kvcaches)
 
-        tmp_gpu_buffer = self.gpu_buffer[:, :, : end - start, :]
+        tmp_gpu_buffer = self.gpu_buffer[:, :, : end - start, :]  # 2, 28, 133, 1024
+        num_blocks, block_size, h, d = kvcaches[0][0].shape # 9510, 16, 8, 128
+        hd_shape = h * d
         tmp_gpu_buffer[0] = torch.stack(tuple(
-            kvcaches[i][0].view(-1) for i in range(len(kvcaches))
+            kvcaches[i][0].view(num_blocks * block_size, hd_shape).index_select(0, slot_mapping[start:end])
+             for i in range(len(kvcaches))
+        ))
+        tmp_gpu_buffer[1] = torch.stack(tuple(
+            kvcaches[i][1].view(num_blocks * block_size, hd_shape).index_select(0, slot_mapping[start:end])
+             for i in range(len(kvcaches))
         ))
         memory_obj.tensor.copy_(tmp_gpu_buffer, non_blocking=True)
-
-        if self.gpu_buffer is None or end - start != self.gpu_buffer.shape[2]:
-            lmc_ops.multi_layer_kv_transfer(
-                memory_obj.tensor,
-                kv_cache_pointers,
-                slot_mapping[start:end],
-                kvcaches[0].device,
-                self.page_buffer_size,
-                True,
-                self.use_mla,
-            )
-        else:
-            # kvcaches -> gpu_buffer -> memobj
-            assert self.gpu_buffer.device == kvcaches[0].device
-            tmp_gpu_buffer = self.gpu_buffer[:, :, : end - start, :]
-            lmc_ops.multi_layer_kv_transfer(
-                tmp_gpu_buffer,
-                kv_cache_pointers,
-                slot_mapping[start:end],
-                kvcaches[0].device,
-                self.page_buffer_size,
-                True,
-                self.use_mla,
-            )
-            memory_obj.tensor.copy_(tmp_gpu_buffer, non_blocking=True)
 
         if not memory_obj.tensor.is_xpu:
             # Force a synchronize if the target buffer is NOT XPU device
