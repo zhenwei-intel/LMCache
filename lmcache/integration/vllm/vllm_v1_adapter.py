@@ -14,7 +14,7 @@
 
 # Standard
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 # Third Party
 from vllm.config import VllmConfig
@@ -136,7 +136,7 @@ class RequestTracker:
     def update(
         self,
         new_token_ids: list[int],
-        new_block_ids: tuple[list[int], ...],
+        new_block_ids: Union[Optional[tuple[list[int], ...]], list[int]],
     ) -> None:
         """Update the request tracker when a running request is
         scheduled again
@@ -144,14 +144,19 @@ class RequestTracker:
 
         self.token_ids.extend(new_token_ids)
 
-        if len(new_block_ids) == 0:
+        if new_block_ids is None:
+            # https://github.com/vllm-project/vllm/commit/
+            # b029de9902aa3ac58806c8c17776c7074175b6db#
+            # diff-cafd89ce8a698a56acb24ada62831cbc7a980782f78a52d1742ba238031f296cL94
             new_block_ids = []
-        else:
-            assert isinstance(new_block_ids[0], list), (
-                "The new_block_ids should be a tuple of lists, "
-                "the vllm version might be too old!"
-            )
+        elif len(new_block_ids) == 0:
+            new_block_ids = []
+        elif isinstance(new_block_ids, tuple):
             new_block_ids = new_block_ids[0]
+        elif isinstance(new_block_ids, list):
+            pass
+        else:
+            raise ValueError(f"Unsupported new_block_ids type {type(new_block_ids)}")
         self.allocated_block_ids.extend(new_block_ids)
 
 
