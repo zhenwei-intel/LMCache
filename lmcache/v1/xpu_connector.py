@@ -151,15 +151,15 @@ class VLLMPagedMemXPUConnectorV2(GPUConnectorInterface):
 
         kv_cache_pointers = self._initialize_pointers(kvcaches)
 
-        lmc_ops.multi_layer_kv_transfer(
-            memory_obj.tensor,
-            kv_cache_pointers,
-            slot_mapping[start:end],
-            kvcaches[0].device,
-            self.page_buffer_size,
-            False,
-            self.use_mla,
-        )
+        tmp_gpu_buffer = self.gpu_buffer[:, :, : end - start, :]  # 2, 28, 133, 1024
+        tmp_gpu_buffer[0] = memory_obj.tensor[0].to(slot_mapping.device)
+        tmp_gpu_buffer[1] = memory_obj.tensor[1].to(slot_mapping.device)
+        num_blocks, block_size, h, d = kvcaches[0][0].shape # 9510, 16, 8, 128
+        hd_shape = h * d
+
+        for i in range(len(kvcaches)):
+            kvcaches[i][0].view(num_blocks * block_size, hd_shape).index_copy_(0, slot_mapping[start:end], tmp_gpu_buffer[0][i])
+            kvcaches[i][1].view(num_blocks * block_size, hd_shape).index_copy_(0, slot_mapping[start:end], tmp_gpu_buffer[1][i])
 
     @_lmcache_nvtx_annotate
     def from_gpu(self, memory_obj: MemoryObj, start: int, end: int, **kwargs):
