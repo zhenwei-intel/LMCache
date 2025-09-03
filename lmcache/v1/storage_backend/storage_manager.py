@@ -245,8 +245,7 @@ class StorageManager:
         Non-blocking function to get the memory objects from the storages.
         """
         storage_backend = self.storage_backends[storage_backend_name]
-        while not storage_backend.contains(keys):
-            memory_objs = storage_backend.batched_get_blocking(keys)
+        memory_objs = storage_backend.batched_get_blocking(keys)
         return memory_objs
 
     def layerwise_batched_get(
