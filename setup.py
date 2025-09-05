@@ -14,9 +14,6 @@ HIPIFY_OUT_DIR = os.path.join(ROOT_DIR, "csrc_hip/")
 # will run python setup.py sdist --dist-dir dist
 BUILDING_SDIST = "sdist" in sys.argv or os.environ.get("NO_CUDA_EXT", "0") == "1"
 
-# New environment variable to choose between CUDA and HIP
-BUILD_WITH_HIP = os.environ.get("BUILD_WITH_HIP", "0") == "1"
-
 
 def hipify_wrapper() -> None:
     # Third Party
