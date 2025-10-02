@@ -494,9 +494,11 @@ def _init_lmcache_engine(
 
     # Change current device.
     if torch.cuda.is_available():
+        logger.info("CUDA device is available. Using CUDA for LMCache engine.")
         torch_dev = torch.cuda
         dev_name = "cuda"
     elif torch.xpu.is_available():
+        logger.info("XPU device is available. Using XPU for LMCache engine.")
         torch_dev = torch.xpu
         dev_name = "xpu"
     else:
@@ -611,6 +613,7 @@ class LMCacheConnectorV1Impl:
     ):
         self._parent = parent
         self._vllm_config = vllm_config
+        self.device = vllm_config.device_config.device
         self.kv_role = vllm_config.kv_transfer_config.kv_role
         self.worker_count = vllm_config.parallel_config.tensor_parallel_size
         config = lmcache_get_or_create_config()
@@ -880,7 +883,7 @@ class LMCacheConnectorV1Impl:
 
             tokens = request.token_ids
             # TODO: have a pre-allocated buffer to hold the slot_mappings
-            slot_mapping = request.slot_mapping.to(kvcaches[0][0].device)
+            slot_mapping = request.slot_mapping.to(self.device)
             assert len(tokens) == len(slot_mapping)
 
             token_mask = torch.ones(len(tokens), dtype=torch.bool)
@@ -1113,7 +1116,7 @@ class LMCacheConnectorV1Impl:
                 assert len(slot_mapping) == len(token_ids)
 
                 # TODO: have a pre-allocated buffer to hold the slot_mappings
-                slot_mapping = slot_mapping.to(kvcaches[0][0].device)
+                slot_mapping = slot_mapping.to(self.device)
 
                 if self.kv_role == "kv_producer":
                     skip_leading_tokens = 0
@@ -1202,7 +1205,7 @@ class LMCacheConnectorV1Impl:
             assert len(slot_mapping) == len(token_ids)
 
             # TODO: have a pre-allocated buffer to hold the slot_mappings
-            slot_mapping = slot_mapping.to(kvcaches[0][0].device)
+            slot_mapping = slot_mapping.to(self.device)
 
             skip_leading_tokens = save_spec.skip_leading_tokens
             if self.kv_role == "kv_producer":
