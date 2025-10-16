@@ -20,7 +20,6 @@ import torch
 
 # First Party
 from lmcache.logging import init_logger
-from lmcache.utils import _lmcache_nvtx_annotate
 from lmcache.v1.gpu_connector import VLLMPagedMemGPUConnectorV2
 from lmcache.v1.memory_management import MemoryFormat, MemoryObj
 
@@ -77,7 +76,6 @@ class VLLMPagedMemXPUConnectorV2(VLLMPagedMemGPUConnectorV2):
                 shape, dtype=kwargs["dtype"], device=kwargs["device"]
             )
 
-    @_lmcache_nvtx_annotate
     def to_gpu(self, memory_obj: MemoryObj, start: int, end: int, **kwargs):
         """Expect a kwarg 'kvcaches' which is a nested tuple of K and V tensors.
         The kvcaches should correspond to the "WHOLE token sequence".
@@ -136,7 +134,6 @@ class VLLMPagedMemXPUConnectorV2(VLLMPagedMemGPUConnectorV2):
                 kcache.view(total_blocks, d).index_copy_(0, slices, tmp_k[i])
                 vcache.view(total_blocks, d).index_copy_(0, slices, tmp_v[i])
 
-    @_lmcache_nvtx_annotate
     def from_gpu(self, memory_obj: MemoryObj, start: int, end: int, **kwargs):
         """Expect a kwarg 'kvcaches' which is a nested tuple of K and V tensors.
         The kvcaches should correspond to the "WHOLE token sequence".
