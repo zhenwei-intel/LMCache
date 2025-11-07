@@ -34,6 +34,7 @@ except ImportError:
     from vllm.utils import get_kv_cache_torch_dtype
 
 # Third Party
+from vllm.platforms import current_platform
 from vllm.v1.core.sched.output import SchedulerOutput
 from vllm.version import __version__ as VLLM_VERSION
 import torch
@@ -60,7 +61,6 @@ from lmcache.v1.gpu_connector import (
     VLLMPagedMemGPUConnectorV2,
     VLLMPagedMemLayerwiseGPUConnector,
 )
-from lmcache.v1.xpu_connector import VLLMPagedMemXPUConnectorV2
 from lmcache.v1.internal_api_server.api_server import InternalAPIServer
 from lmcache.v1.lookup_client import LookupClientFactory
 from lmcache.v1.lookup_client.lmcache_async_lookup_client import (
@@ -68,6 +68,7 @@ from lmcache.v1.lookup_client.lmcache_async_lookup_client import (
 )
 from lmcache.v1.offload_server.zmq_server import ZMQOffloadServer
 from lmcache.v1.plugin.plugin_launcher import PluginLauncher
+from lmcache.v1.xpu_connector import VLLMPagedMemXPUConnectorV2
 
 if TYPE_CHECKING:
     # Third Party
@@ -493,11 +494,11 @@ def _init_lmcache_engine(
     )
 
     # Change current device.
-    if torch.cuda.is_available():
+    if current_platform.is_cuda_alike():
         logger.info("CUDA device is available. Using CUDA for LMCache engine.")
         torch_dev = torch.cuda
         dev_name = "cuda"
-    elif torch.xpu.is_available():
+    elif current_platform.is_xpu():
         logger.info("XPU device is available. Using XPU for LMCache engine.")
         torch_dev = torch.xpu
         dev_name = "xpu"
@@ -555,9 +556,9 @@ def _init_lmcache_engine(
             )
         tpg = get_tp_group()
     else:
-        if torch.cuda.is_available():
+        if current_platform.is_cuda_alike():
             connector_cls = VLLMPagedMemGPUConnectorV2
-        elif torch.xpu.is_available():
+        elif current_platform.is_xpu():
             connector_cls = VLLMPagedMemXPUConnectorV2
         else:
             raise RuntimeError("No supported connector found for the current platform.")
