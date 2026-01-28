@@ -224,6 +224,11 @@ class PDBackend(AllocatorBackendInterface):
         if corrected_device.startswith("cuda"):
             torch.cuda.set_device(corrected_device)
         elif corrected_device.startswith("xpu"):
+            if not hasattr(torch, "xpu"):
+                raise RuntimeError(
+                    "XPU device is not available. Please ensure PyTorch is built "
+                    "with XPU support."
+                )
             torch.xpu.set_device(corrected_device)
 
         paged_mem_allocator = PagedCpuGpuMemoryAllocator()

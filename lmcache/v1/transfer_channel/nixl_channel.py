@@ -617,14 +617,19 @@ class NixlAgentWrapper:
             backends = ["UCX"]
 
         # Determine memory type based on device string
-        # device can be "cuda", "cuda:0", "xpu", "xpu:0", etc.
+        # device can be "cuda", "cuda:0", "xpu", "xpu:0", "cpu", etc.
         if device.startswith("cuda"):
             mem_type = "cuda"
         elif device.startswith("xpu"):
             mem_type = "xpu"
+        elif device.startswith("cpu"):
+            mem_type = "cpu"
         else:
-            # Default to cuda for backward compatibility
-            mem_type = "cuda"
+            # Raise error for unsupported device types
+            raise ValueError(
+                f"Unsupported device type: {device}. "
+                "Supported device types are: cuda, xpu, cpu"
+            )
 
         # Create a NIXL agent
         nixl_agent = NixlAgent(
