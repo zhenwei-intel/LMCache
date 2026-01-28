@@ -81,6 +81,10 @@ class NixlChannel(BaseTransferChannel):
         else:
             backends = ["UCX"]
 
+        # Extract device from kwargs (optional, defaults to "cuda" for
+        # backwards compatibility)
+        device = kwargs.get("device", "cuda")
+
         self.role = kwargs["role"]
 
         self.nixl_wrapper = NixlAgentWrapper(
@@ -89,6 +93,7 @@ class NixlChannel(BaseTransferChannel):
             page_size=kwargs["align_bytes"],
             tp_rank=kwargs["tp_rank"],
             backends=backends,
+            device=device,
         )
         self.nixl_agent = self.nixl_wrapper.agent
 
@@ -579,6 +584,7 @@ class NixlAgentWrapper:
         page_size: int,
         tp_rank: int,
         backends: list[str],
+        device: str = "cuda",
     ):
         """
         Initialize the NIXL agent.
@@ -590,6 +596,8 @@ class NixlAgentWrapper:
                 the lmcache memory allocator.
             tp_rank (int): The tensor parallel rank.
             backends (list[str]): The list of backends to use.
+            device (str): The device type string (e.g., "cuda:0", "xpu:0").
+                Defaults to "cuda" for backward compatibility.
 
         Returns:
             NixlWrapper: The NIXL agent.
@@ -608,6 +616,21 @@ class NixlAgentWrapper:
         if backends is None:
             backends = ["UCX"]
 
+        # Determine memory type based on device string
+        # device can be "cuda", "cuda:0", "xpu", "xpu:0", "cpu", etc.
+        if device.startswith("cuda"):
+            mem_type = "cuda"
+        elif device.startswith("xpu"):
+            mem_type = "xpu"
+        elif device.startswith("cpu"):
+            mem_type = "cpu"
+        else:
+            # Raise error for unsupported device types
+            raise ValueError(
+                f"Unsupported device type: {device}. "
+                "Supported device types are: cuda, xpu, cpu"
+            )
+
         # Create a NIXL agent
         nixl_agent = NixlAgent(
             str(uuid.uuid4()),
@@ -618,8 +641,7 @@ class NixlAgentWrapper:
         # The four fields are (base_addr, length, dev_id, meta_info)
         # https://github.com/ai-dynamo/nixl/blob/main/src/api/cpp/nixl_descriptors.h#L152
         memory_desc = [(buffer_ptr, buffer_size, tp_rank, "")]
-        # TODO(Jiayi): remove hardcode `mem_type`
-        reg_descs = nixl_agent.get_reg_descs(memory_desc, mem_type="cuda")
+        reg_descs = nixl_agent.get_reg_descs(memory_desc, mem_type=mem_type)
         nixl_agent.register_memory(reg_descs)
 
         # Create xfer handlers
@@ -627,8 +649,8 @@ class NixlAgentWrapper:
         for base_addr in range(buffer_ptr, buffer_ptr + buffer_size, page_size):
             xfer_desc.append((base_addr, page_size, tp_rank))
 
-        xfer_descs = nixl_agent.get_xfer_descs(xfer_desc, mem_type="cuda")
-        xfer_handler = nixl_agent.prep_xfer_dlist("", xfer_descs, mem_type="cuda")
+        xfer_descs = nixl_agent.get_xfer_descs(xfer_desc, mem_type=mem_type)
+        xfer_handler = nixl_agent.prep_xfer_dlist("", xfer_descs, mem_type=mem_type)
 
         self.agent = nixl_agent
         self.reg_descs = reg_descs

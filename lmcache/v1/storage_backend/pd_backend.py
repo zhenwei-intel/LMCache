@@ -189,6 +189,7 @@ class PDBackend(AllocatorBackendInterface):
             tp_rank=self.tp_rank,
             peer_init_url=peer_init_url,
             backends=config.nixl_backends,
+            device=self.pd_config.buffer_device,
         )
 
         if self.pd_config.role == "sender":
@@ -217,8 +218,18 @@ class PDBackend(AllocatorBackendInterface):
             config.pd_buffer_device,
             metadata.worker_id,
         )
-        logger.info(f"Setting cuda device to {corrected_device} ")
-        torch.cuda.set_device(corrected_device)
+        logger.info(f"Setting device to {corrected_device}")
+
+        # Set device based on device type
+        if corrected_device.startswith("cuda"):
+            torch.cuda.set_device(corrected_device)
+        elif corrected_device.startswith("xpu"):
+            if not hasattr(torch, "xpu"):
+                raise RuntimeError(
+                    "XPU device is not available. Please ensure PyTorch is built "
+                    "with XPU support."
+                )
+            torch.xpu.set_device(corrected_device)
 
         paged_mem_allocator = PagedCpuGpuMemoryAllocator()
         paged_mem_allocator.init_gpu_memory_allocator(
