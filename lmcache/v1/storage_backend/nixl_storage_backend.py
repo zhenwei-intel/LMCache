@@ -532,7 +532,16 @@ class NixlStorageBackend(AllocatorBackendInterface, ABC):
             base_buffer, self.buffer = _allocate_gpu_memory(
                 config.nixl_buffer_size, corrected_device
             )
-            torch.cuda.set_device(corrected_device)
+            # Set device based on device type
+            if corrected_device.startswith("cuda"):
+                torch.cuda.set_device(corrected_device)
+            elif corrected_device.startswith("xpu"):
+                if not hasattr(torch, "xpu"):
+                    raise RuntimeError(
+                        "XPU device is not available. Please ensure PyTorch is "
+                        "built with XPU support."
+                    )
+                torch.xpu.set_device(corrected_device)
             self.base_buffer = base_buffer  # Prevents early GC of the aligned tensor.
             self.free_pinned_buffer = False
 

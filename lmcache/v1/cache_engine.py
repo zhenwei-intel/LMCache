@@ -1794,8 +1794,17 @@ class LMCacheEngineBuilder:
                     buffer.data_ptr(), config.nixl_buffer_size, 0
                 )
             else:
-                logger.info(f"Setting cuda device to {corrected_device} ")
-                torch.cuda.set_device(corrected_device)
+                logger.info(f"Setting device to {corrected_device}")
+                # Set device based on device type
+                if corrected_device.startswith("cuda"):
+                    torch.cuda.set_device(corrected_device)
+                elif corrected_device.startswith("xpu"):
+                    if not hasattr(torch, "xpu"):
+                        raise RuntimeError(
+                            "XPU device is not available. Please ensure PyTorch "
+                            "is built with XPU support."
+                        )
+                    torch.xpu.set_device(corrected_device)
 
             return PagedTensorMemoryAllocator(
                 buffer,
