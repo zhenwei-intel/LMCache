@@ -219,7 +219,7 @@ class PDBackend(AllocatorBackendInterface):
             metadata.worker_id,
         )
         logger.info(f"Setting device to {corrected_device}")
-        
+
         # Set device based on device type
         if corrected_device.startswith("cuda"):
             torch.cuda.set_device(corrected_device)

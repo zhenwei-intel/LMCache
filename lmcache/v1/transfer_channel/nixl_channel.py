@@ -81,7 +81,8 @@ class NixlChannel(BaseTransferChannel):
         else:
             backends = ["UCX"]
 
-        # Extract device from kwargs (optional, defaults to "cuda" for backwards compatibility)
+        # Extract device from kwargs (optional, defaults to "cuda" for
+        # backwards compatibility)
         device = kwargs.get("device", "cuda")
 
         self.role = kwargs["role"]
